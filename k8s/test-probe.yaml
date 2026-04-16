@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-api-probe-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: go-api-probe-test
+  template:
+    metadata:
+      labels:
+        app: go-api-probe-test
+    spec:
+      containers:
+        - name: go-api
+          image: 127.0.0.1:5050/go-api:0.0.5
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-api-probe-test
+spec:
+  selector:
+    app: go-api-probe-test
+  ports:
+    - port: 80
+      targetPort: 8080
