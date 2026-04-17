@@ -4,7 +4,7 @@ A structured, self-directed learning portfolio covering the full DevOps/SRE stac
 
 The Go API is intentionally minimal. The focus is the infrastructure around it: how to build, secure, deploy, and monitor a service the way a production team would.
 
-Blogs documenting each phase: [LouStackBase](https://loustack.dev/)
+Blogs documenting each phase: [LouStackBase](https://loustack.dev/?lang=english)
 
 ---
 
