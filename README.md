@@ -65,6 +65,15 @@ Push-based CD requires the CI runner to hold K8s credentials, blurring the secur
 - ConfigMap vs Secret: `envFrom` (whole map) vs `valueFrom` (single key)
 - Cross-namespace DNS: `service.namespace.svc.cluster.local`
 
+### Phase 3 — K8s Review Checkpoint
+Oral review of Phase 1–2 concepts — no new tooling, focused on explaining the *why* without notes.
+- Container vs VM: namespace + cgroup vs hypervisor
+- Pod / Deployment / ReplicaSet relationship; Service label selector mechanism
+- OOMKilled, CrashLoopBackOff, Pod Pending — root causes and debug approach
+- requests vs limits: Scheduler uses requests, runtime enforces limits
+- Readiness probe failure vs Liveness probe failure — different consequences
+- ConfigMap vs Secret; cross-namespace DNS
+
 ### Phase 4 — Networking + GCP Fundamentals
 - DNS resolution, TLS handshake, HTTP statelessness
 - L4 vs L7 load balancer trade-offs; reverse proxy pattern
