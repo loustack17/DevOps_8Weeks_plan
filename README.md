@@ -34,34 +34,43 @@ Blogs documenting each phase: [LouStackBase](https://loustack.dev/)
 ```mermaid
 flowchart LR
     dev([Developer]) -->|git push| github(GitHub)
+    github --> ci
 
-    subgraph ci [" GitHub Actions "]
+    subgraph ci [GitHub Actions]
         direction LR
         test --> build --> deploy
     end
 
-    github --> ci
-
-    deploy -->|"OIDC token\nno SA key"| wif["Workload Identity\nFederation"]
-    wif -->|impersonate| sa["Service Account\nartifactregistry.writer only"]
-    deploy -->|docker push| ar["Artifact\nRegistry"]
-
-    ar -. "GitOps sync\n(planned)" .-> argocd["ArgoCD\n(planned)"]
-
-    subgraph k8s [" Kubernetes k3s "]
-        argocd -. sync .-> app["go-api\nDeployment + HPA"]
-        app -. "/metrics" .-> prom["Prometheus\n(planned)"]
-        prom -. dashboards .-> grafana["Grafana\n(planned)"]
+    subgraph gcp [GCP — Terraform Bootstrap]
+        direction TB
+        wif["Workload Identity\nFederation"]
+        sa["Service Account\nartifactregistry.writer"]
+        ar["Artifact Registry"]
+        wif -->|impersonate| sa
     end
 
-    subgraph gcp [" GCP (Terraform bootstrap) "]
-        wif
-        sa
-        ar
+    deploy -->|OIDC token — no SA key| wif
+    deploy -->|docker push| ar
+
+    subgraph k8s [Kubernetes — k3s]
+        direction TB
+        argocd["ArgoCD"]
+        app["go-api\nDeployment + HPA"]
+        prom["Prometheus"]
+        grafana["Grafana"]
+        argocd -->|sync| app
+        app -->|/metrics| prom
+        prom --> grafana
     end
+
+    ar -.->|"planned: GitOps sync"| argocd
+
+    style argocd stroke-dasharray: 5 5
+    style prom stroke-dasharray: 5 5
+    style grafana stroke-dasharray: 5 5
 ```
 
-> Solid lines = implemented. Dashed lines = planned (Phase 6–7).
+> Solid lines = implemented. Dashed borders + dashed lines = planned (Phase 6–7).
 
 ---
 
