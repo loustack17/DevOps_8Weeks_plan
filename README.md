@@ -31,44 +31,7 @@ Blogs documenting each phase: [LouStackBase](https://loustack.dev/)
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    dev([Developer]) -->|git push| github(GitHub)
-    github --> ci
-
-    subgraph ci [GitHub Actions]
-        direction LR
-        test --> build --> deploy
-    end
-
-    subgraph gcp [GCP — Terraform Bootstrap]
-        direction TB
-        wif["Workload Identity\nFederation"]
-        sa["Service Account\nartifactregistry.writer"]
-        ar["Artifact Registry"]
-        wif -->|impersonate| sa
-    end
-
-    deploy -->|OIDC token — no SA key| wif
-    deploy -->|docker push| ar
-
-    subgraph k8s [Kubernetes — k3s]
-        direction TB
-        argocd["ArgoCD"]
-        app["go-api\nDeployment + HPA"]
-        prom["Prometheus"]
-        grafana["Grafana"]
-        argocd -->|sync| app
-        app -->|/metrics| prom
-        prom --> grafana
-    end
-
-    ar -.->|"planned: GitOps sync"| argocd
-
-    style argocd stroke-dasharray: 5 5
-    style prom stroke-dasharray: 5 5
-    style grafana stroke-dasharray: 5 5
-```
+![Architecture](docs/architecture.png)
 
 > Solid lines = implemented. Dashed borders + dashed lines = planned (Phase 6–7).
 
