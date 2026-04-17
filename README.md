@@ -1,15 +1,34 @@
-# go-api — DevOps Learning Portfolio
+# go-api — DevOps / SRE Learning Portfolio
 
-A structured, self-directed learning portfolio covering the full DevOps/SRE stack on GCP.
-The Go API is intentionally minimal — it exists as a concrete target to practice real infrastructure and deployment patterns around.
+A structured, self-directed learning portfolio covering the full DevOps/SRE stack on GCP — from container fundamentals to GitOps, observability, and system design.
 
-## Learning Approach
+The Go API is intentionally minimal. The focus is the infrastructure around it: how to build, secure, deploy, and monitor a service the way a production team would.
 
-> See the result first → understand why → connect to system design trade-offs
+Blogs documenting each phase: [LouStackBase](https://loustack.dev/)
 
-Each phase is hands-on before theory. The goal is not to memorise tooling, but to understand *why* each design decision exists and what the trade-offs are.
+---
 
-Blogs documenting each phase: [LouStackBase](https://loustack.dev/?lang=english)
+## Architecture
+
+<a href="docs/architecture.png"><img src="docs/architecture.png" width="900" alt="Architecture Diagram"></a>
+
+> Solid lines = implemented. Dashed borders = planned (Phase 6–7).
+
+---
+
+## Key Design Decisions
+
+**Why Workload Identity Federation instead of a Service Account key?**
+Long-lived SA keys are the most common CI/CD credential leak vector. WIF issues short-lived OIDC tokens scoped to a specific GitHub repository — nothing to rotate, nothing to leak. The token expires in minutes and never touches disk.
+
+**Why a bootstrap layer in Terraform?**
+Resources like WIF pool, Artifact Registry, and IAM bindings are created once and shared across environments. Mixing them with environment-specific resources (VPC, GKE) makes both harder to change safely. Separating them keeps the blast radius small.
+
+**Why least privilege for the CI Service Account?**
+The SA holds only `roles/artifactregistry.writer`. Even if the pipeline is compromised, the attacker can push images — they cannot touch any other GCP resource. Principle of least privilege applied at the IAM binding level.
+
+**Why pull-based deployment (ArgoCD) instead of `kubectl apply` in CI?**
+Push-based CD requires the CI runner to hold K8s credentials, blurring the security boundary between CI and the cluster. ArgoCD polls the git repo and syncs from inside the cluster — the cluster pulls, nothing external pushes. Git becomes the single source of truth, and drift is automatically detected and corrected.
 
 ---
 
@@ -29,19 +48,11 @@ Blogs documenting each phase: [LouStackBase](https://loustack.dev/?lang=english)
 
 ---
 
-## Architecture
-
-![Architecture](docs/architecture.png)
-
-> Solid lines = implemented. Dashed borders + dashed lines = planned (Phase 6–7).
-
----
-
 ## Phase Highlights
 
 ### Phase 1 — Docker + Kubernetes Core
 - Linux namespace + cgroup; multi-stage Docker build to `scratch` and `distroless`
-- Image layer cache, container restart vs rebuild, cgroup resource limits
+- Image layer cache optimisation; container restart vs rebuild
 - K8s architecture: Control Plane vs Worker Node, reconciliation loop
 - Deployment → ReplicaSet → Pod, rolling update (`maxSurge` / `maxUnavailable`)
 - Service DNS-based discovery, HPA with metrics-server
@@ -49,21 +60,21 @@ Blogs documenting each phase: [LouStackBase](https://loustack.dev/?lang=english)
 
 ### Phase 2 — K8s Failure Modeling
 - OOMKilled (exit code 137), CrashLoopBackOff exponential backoff, ImagePullBackOff
-- Readiness probe vs Liveness probe failure — different outcomes
+- Readiness probe vs Liveness probe failure — different recovery behaviour
 - ResourceQuota enforcement at the API server layer
 - ConfigMap vs Secret: `envFrom` (whole map) vs `valueFrom` (single key)
 - Cross-namespace DNS: `service.namespace.svc.cluster.local`
 
 ### Phase 4 — Networking + GCP Fundamentals
-- DNS resolution flow, TLS handshake, HTTP statelessness
+- DNS resolution, TLS handshake, HTTP statelessness
 - L4 vs L7 load balancer trade-offs; reverse proxy pattern
 - GCP VPC (global) vs Azure VNet (regional); Service Account vs Managed Identity
 - GCP hands-on: VPC, Subnet, Firewall Rules, Service Account
 - SD: Networking Essentials, Client-Server Architecture, Load Balancer, API Gateway
 
 ### Phase 5 — IaC + Least Privilege
-- Terraform modules, multi-environment structure, GCS remote state + locking
-- `terraform state mv / rm / import` for refactoring
+- Terraform modules, multi-environment structure, GCS remote state + state locking
+- `terraform state mv / rm / import` for safe refactoring
 - Workload Identity Federation: GitHub Actions → GCP OIDC, no SA key
 - Ansible: inventory, playbook, idempotency (`file` / `copy` vs `command` module)
 - SD: CAP Theorem, Scalability, Overload Protection, Scaling Reads, Scaling Writes
@@ -73,23 +84,23 @@ Blogs documenting each phase: [LouStackBase](https://loustack.dev/?lang=english)
 - WIF keyless auth, `id-token: write` scoped to deploy job only
 - Docker image push to Artifact Registry on every merge to main
 - Terraform bootstrap layer: one-time GCP setup separated from environments
-- ArgoCD on k3s: pull-based GitOps, push-based vs pull-based trade-offs *(in progress)*
+- ArgoCD on k3s: pull-based GitOps *(in progress)*
 - SD: Reliable Delivery, API Design, Queue, Kafka, Long Running Tasks, Container optimisation
 
 ### Phase 7 — Monitoring + Observability *(planned)*
 - GKE Autopilot cluster; deploy go-api with Artifact Registry image
 - Prometheus + Grafana: QPS, error rate, P50/P95/P99 latency dashboard
-- go-api `/metrics` endpoint: Counter, Gauge, Histogram
-- Alert design: symptom-based alerting (error rate > 1%, P95 latency > 500ms)
+- go-api `/metrics`: Counter, Gauge, Histogram
+- Symptom-based alerting: error rate > 1%, P95 latency > 500ms
 - SD: Observability (four golden signals), Caching, Redis, Distributed Cache, Database Transactions, Replication, CDN, Data Pipeline, Dealing with Contention
 
 ### Phase 8 — Advanced SD + Interview Prep *(planned)*
 - Rate limiting middleware on go-api (token bucket)
-- Interview prep: K8s failure scenarios, Terraform state, CI/CD trade-offs, GCP architecture
+- Incident scenario practice: think-aloud troubleshooting
 - SD: Consistent Hashing, Sharding, Database Indexing, PostgreSQL, DynamoDB, OLTP vs OLAP, Distributed Lock, Zookeeper, GraphQL, gRPC, Real-time Updates, Large Blobs, Search System
 
 ### Phase 9 — Best Practices Case Studies *(planned)*
-End-to-end system design practice: requirements → capacity estimation → API design → architecture → trade-offs.
+End-to-end system design: requirements → capacity estimation → API design → architecture → trade-offs.
 - YouTube, Messenger, Spotify Trending, Airbnb Booking, Earthquake Notification System
 - Webhook Platform, Google Docs, LLM Inference API, Q&A Support Agent
 
