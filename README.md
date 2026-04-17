@@ -9,7 +9,7 @@ The Go API is intentionally minimal — it exists as a concrete target to practi
 
 Each phase is hands-on before theory. The goal is not to memorise tooling, but to understand *why* each design decision exists and what the trade-offs are.
 
-Blogs documenting each phase: [LouStackBase](https://loustack17.github.io/)
+Blogs documenting each phase: [LouStackBase](https://loustack.dev/)
 
 ---
 
@@ -26,6 +26,42 @@ Blogs documenting each phase: [LouStackBase](https://loustack17.github.io/)
 | 7 | Monitoring + Observability (GKE + Prometheus + Grafana) | Observability | ⏳ Planned |
 | 8 | Advanced SD + Interview Prep | Overload Protection | ⏳ Planned |
 | 9 | Best Practices Case Studies | — | ⏳ Planned |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    dev([Developer]) -->|git push| github(GitHub)
+
+    subgraph ci [" GitHub Actions "]
+        direction LR
+        test --> build --> deploy
+    end
+
+    github --> ci
+
+    deploy -->|"OIDC token\nno SA key"| wif["Workload Identity\nFederation"]
+    wif -->|impersonate| sa["Service Account\nartifactregistry.writer only"]
+    deploy -->|docker push| ar["Artifact\nRegistry"]
+
+    ar -. "GitOps sync\n(planned)" .-> argocd["ArgoCD\n(planned)"]
+
+    subgraph k8s [" Kubernetes k3s "]
+        argocd -. sync .-> app["go-api\nDeployment + HPA"]
+        app -. "/metrics" .-> prom["Prometheus\n(planned)"]
+        prom -. dashboards .-> grafana["Grafana\n(planned)"]
+    end
+
+    subgraph gcp [" GCP (Terraform bootstrap) "]
+        wif
+        sa
+        ar
+    end
+```
+
+> Solid lines = implemented. Dashed lines = planned (Phase 6–7).
 
 ---
 
