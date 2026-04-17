@@ -9,7 +9,7 @@ The Go API is intentionally minimal — it exists as a concrete target to practi
 
 Each phase is hands-on before theory. The goal is not to memorise tooling, but to understand *why* each design decision exists and what the trade-offs are.
 
-Blogs documenting each phase: [LouStackBase](https://loustack.dev/)
+Blogs documenting each phase: [LouStackBase](https://loustack.dev/?lang=english)
 
 ---
 
