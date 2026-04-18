@@ -24,8 +24,8 @@ WIF pool, Artifact Registry, and IAM bindings are one-time shared resources. Sep
 `roles/artifactregistry.writer` only. A compromised pipeline can push images; it cannot touch any other GCP resource.
 → [`terraform/bootstrap/main.tf#L72`](terraform/bootstrap/main.tf#L72)
 
-**ArgoCD pull-based GitOps over `kubectl apply` in CI**
-Push-based CD requires CI to hold cluster credentials. ArgoCD syncs from inside the cluster — CI never touches K8s, drift is auto-detected, git is the source of truth.
+**ArgoCD pull-based GitOps over `kubectl apply` in CI** *(planned — Phase 6)*
+Push-based CD requires CI to hold cluster credentials. The plan: ArgoCD syncs from inside the cluster — CI never touches K8s, drift is auto-detected, git is the source of truth.
 
 ## Progress
 
