@@ -14,7 +14,7 @@ Blogs: [LouStackBase](https://loustack.dev/?lang=english)
 
 **WIF over Service Account key**
 SA keys are the leading CI/CD credential leak vector. WIF issues short-lived OIDC tokens scoped to a specific GitHub repo — no rotation, no disk storage, expires in minutes.
-→ [`ci.yml`](.github/workflows/ci.yml): `id-token: write` + `google-github-actions/auth`
+→ [`main.tf:55`](terraform/bootstrap/main.tf#L55) `attribute_condition` + [`main.tf:67`](terraform/bootstrap/main.tf#L67) `principalSet` member
 
 **Terraform bootstrap layer**
 WIF pool, Artifact Registry, and IAM bindings are one-time shared resources. Separating them from environment resources (VPC, GKE) limits blast radius on either side.
@@ -22,11 +22,10 @@ WIF pool, Artifact Registry, and IAM bindings are one-time shared resources. Sep
 
 **Least privilege CI Service Account**
 `roles/artifactregistry.writer` only. A compromised pipeline can push images; it cannot touch any other GCP resource.
-→ [`terraform/bootstrap/main.tf:72`](terraform/bootstrap/main.tf)
+→ [`terraform/bootstrap/main.tf#L72`](terraform/bootstrap/main.tf#L72)
 
 **ArgoCD pull-based GitOps over `kubectl apply` in CI**
 Push-based CD requires CI to hold cluster credentials. ArgoCD syncs from inside the cluster — CI never touches K8s, drift is auto-detected, git is the source of truth.
-→ In progress — Phase 6
 
 ## Progress
 
