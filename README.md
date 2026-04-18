@@ -1,40 +1,28 @@
-# go-api — DevOps / SRE Learning Portfolio
+# go-api — DevOps / SRE Portfolio
 
-A structured, self-directed learning portfolio covering the full DevOps/SRE stack on GCP — from container fundamentals to GitOps, observability, and system design.
+The Go API is the workload. The subject is everything around it: secure CI/CD, GitOps, and observability on GCP.
 
-The Go API is intentionally minimal. The focus is the infrastructure around it: how to build, secure, deploy, and monitor a service the way a production team would.
-
-Blogs documenting each phase: [LouStackBase](https://loustack.dev/?lang=english)
-
----
+Blogs: [LouStackBase](https://loustack.dev/?lang=english)
 
 ## Architecture
 
-<a href="docs/architecture.png"><img src="docs/architecture.png" width="900" alt="Architecture Diagram"></a>
+![Architecture Diagram](docs/architecture.png)
 
 > Solid lines = implemented. Dashed borders = planned (Phase 6–7).
 
----
-
 ## Key Design Decisions
 
-**Why Workload Identity Federation instead of a Service Account key?**
+**WIF over Service Account key**
+SA keys are the leading CI/CD credential leak vector. WIF issues short-lived OIDC tokens scoped to a specific GitHub repo — no rotation, no disk storage, expires in minutes.
 
-Long-lived SA keys are the most common CI/CD credential leak vector. WIF issues short-lived OIDC tokens scoped to a specific GitHub repository — nothing to rotate, nothing to leak. The token expires in minutes and never touches disk.
+**Terraform bootstrap layer**
+WIF pool, Artifact Registry, and IAM bindings are one-time shared resources. Separating them from environment resources (VPC, GKE) limits blast radius on either side.
 
-**Why a bootstrap layer in Terraform?**
+**Least privilege CI Service Account**
+`roles/artifactregistry.writer` only. A compromised pipeline can push images; it cannot touch any other GCP resource.
 
-Resources like WIF pool, Artifact Registry, and IAM bindings are created once and shared across environments. Mixing them with environment-specific resources (VPC, GKE) makes both harder to change safely. Separating them keeps the blast radius small.
-
-**Why least privilege for the CI Service Account?**
-
-The SA holds only `roles/artifactregistry.writer`. Even if the pipeline is compromised, the attacker can push images — they cannot touch any other GCP resource. Principle of least privilege applied at the IAM binding level.
-
-**Why pull-based deployment (ArgoCD) instead of `kubectl apply` in CI?**
-
-Push-based CD requires the CI runner to hold K8s credentials, blurring the security boundary between CI and the cluster. ArgoCD polls the git repo and syncs from inside the cluster — the cluster pulls, nothing external pushes. Git becomes the single source of truth, and drift is automatically detected and corrected.
-
----
+**ArgoCD pull-based GitOps over `kubectl apply` in CI**
+Push-based CD requires CI to hold cluster credentials. ArgoCD syncs from inside the cluster — CI never touches K8s, drift is auto-detected, git is the source of truth.
 
 ## Progress
 
@@ -49,8 +37,6 @@ Push-based CD requires the CI runner to hold K8s credentials, blurring the secur
 | 7 | Monitoring + Observability (GKE + Prometheus + Grafana) | Observability | ⏳ Planned |
 | 8 | Advanced SD + Interview Prep | Overload Protection | ⏳ Planned |
 | 9 | Best Practices Case Studies | — | ⏳ Planned |
-
----
 
 ## Phase Highlights
 
@@ -70,12 +56,12 @@ Push-based CD requires the CI runner to hold K8s credentials, blurring the secur
 - Cross-namespace DNS: `service.namespace.svc.cluster.local`
 
 ### Phase 3 — K8s Review Checkpoint
-Oral review of Phase 1–2 concepts — no new tooling, focused on explaining the *why* without notes.
+Oral review of Phase 1–2 — explain without notes.
 - Container vs VM: namespace + cgroup vs hypervisor
-- Pod / Deployment / ReplicaSet relationship; Service label selector mechanism
+- Pod / Deployment / ReplicaSet; Service label selector mechanism
 - OOMKilled, CrashLoopBackOff, Pod Pending — root causes and debug approach
 - requests vs limits: Scheduler uses requests, runtime enforces limits
-- Readiness probe failure vs Liveness probe failure — different consequences
+- Readiness vs Liveness probe failure — different consequences
 - ConfigMap vs Secret; cross-namespace DNS
 
 ### Phase 4 — Networking + GCP Fundamentals
@@ -84,7 +70,7 @@ Oral review of Phase 1–2 concepts — no new tooling, focused on explaining th
 - GCP VPC (global) vs Azure VNet (regional); Service Account vs Managed Identity
 - GCP hands-on: VPC, Subnet, Firewall Rules, Service Account
 
-> System Desgin: Networking Essentials, Client-Server Architecture, Load Balancer, API Gateway
+> System Design: Networking Essentials, Client-Server Architecture, Load Balancer, API Gateway
 
 ### Phase 5 — IaC + Least Privilege
 - Terraform modules, multi-environment structure, GCS remote state + state locking
@@ -122,32 +108,28 @@ End-to-end system design: requirements → capacity estimation → API design �
 - YouTube, Messenger, Spotify Trending, Airbnb Booking, Earthquake Notification System
 - Webhook Platform, Google Docs, LLM Inference API, Q&A Support Agent
 
----
-
 ## Repository Structure
 
 ```
 .
-├── cmd/server/         # application entrypoint
-├── internal/           # business logic
-├── server/             # HTTP handlers
-├── k8s/                # Kubernetes manifests
-│   ├── deployment.yaml # rolling update, resource limits
+├── cmd/server/          # entrypoint
+├── internal/            # business logic
+├── server/              # HTTP handlers
+├── k8s/
+│   ├── deployment.yaml  # rolling update, resource limits
 │   ├── service.yaml
 │   ├── configmap.yaml
 │   ├── secret.yaml
 │   └── hpa.yaml
 ├── terraform/
-│   ├── bootstrap/      # one-time GCP setup: WIF, Artifact Registry, SA, IAM
-│   ├── environments/   # environment-specific resources
-│   └── modules/        # reusable modules (vpc)
+│   ├── bootstrap/       # one-time GCP setup: WIF, Artifact Registry, SA, IAM
+│   ├── environments/    # environment-specific resources
+│   └── modules/         # reusable modules (vpc)
 ├── .github/workflows/
-│   └── ci.yml          # CI: test → build → deploy
-├── Dockerfile          # multi-stage build to scratch
+│   └── ci.yml           # test → build → deploy
+├── Dockerfile           # multi-stage, scratch base
 └── Dockerfile.distroless
 ```
-
----
 
 ## Tech Stack
 
@@ -159,6 +141,6 @@ End-to-end system design: requirements → capacity estimation → API design �
 | IaC | Terraform / OpenTofu |
 | CI/CD | GitHub Actions |
 | Auth | Workload Identity Federation (OIDC, keyless) |
-| Orchestration | Kubernetes (k3s locally, GKE planned) |
+| Orchestration | Kubernetes (k3s local, GKE planned) |
 | Cloud | GCP |
 | Planned | ArgoCD, Prometheus, Grafana |
